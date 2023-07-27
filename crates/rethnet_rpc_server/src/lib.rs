@@ -83,6 +83,7 @@ fn new_filter_deadline() -> Instant {
 struct AppState {
     rethnet_state: RethnetStateType,
     chain_id: U256,
+    coinbase: Address,
     filters: RwLock<HashMap<U256, Filter>>,
     fork_block_number: Option<U256>,
     last_filter_id: RwLock<U256>,
@@ -230,6 +231,13 @@ async fn handle_chain_id(state: StateType) -> ResponseData<U256> {
     event!(Level::INFO, "eth_chainId");
     ResponseData::Success {
         result: state.chain_id,
+    }
+}
+
+async fn handle_coinbase(state: StateType) -> ResponseData<Address> {
+    event!(Level::INFO, "eth_coinbase");
+    ResponseData::Success {
+        result: state.coinbase,
     }
 }
 
@@ -588,6 +596,9 @@ async fn handle_request(
                 MethodInvocation::Eth(EthMethodInvocation::ChainId()) => {
                     response(id, handle_chain_id(state).await)
                 }
+                MethodInvocation::Eth(EthMethodInvocation::Coinbase()) => {
+                    response(id, handle_coinbase(state).await)
+                }
                 MethodInvocation::Eth(EthMethodInvocation::GetBalance(address, block)) => {
                     response(id, handle_get_balance(state, *address, block.clone()).await)
                 }
@@ -768,6 +779,7 @@ impl Server {
         };
 
         let chain_id = config.chain_id;
+        let coinbase = config.coinbase;
         let filters = RwLock::new(HashMap::default());
         let last_filter_id = RwLock::new(U256::ZERO);
 
@@ -800,6 +812,7 @@ impl Server {
                         genesis_accounts,
                     )))),
                     chain_id,
+                    coinbase,
                     filters,
                     fork_block_number: Some(fork_block_number),
                     last_filter_id,
@@ -811,6 +824,7 @@ impl Server {
                         genesis_accounts,
                     )))),
                     chain_id,
+                    coinbase,
                     filters,
                     fork_block_number: None,
                     last_filter_id,
